@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"fmt"
 	"os"
 )
 
@@ -28,10 +29,10 @@ func processHandler(res http.ResponseWriter, req *http.Request) {
 		content = append(content, scanner.Text())
 	}
 	firstElement := content[0]
-	file.WriteString(firstElement)
-	removedFile, err := removeFileFirstLine(file)
+	// file.WriteString(firstElement)
+	err = removeFileFirstLine(file)
 	check(err)
-	log.Fatal(res.Write(removedFile))
+	log.Fatal(res.Write([]byte(firstElement)))
 }
 
 func check(e error) {
@@ -40,43 +41,44 @@ func check(e error) {
 	}
 }
 
-func removeFileFirstLine(file *os.File) ([]byte, error) {
+func removeFileFirstLine(file *os.File)  error {
 	fileInfo, err := file.Stat()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	buf := bytes.NewBuffer(make([]byte, 0, fileInfo.Size()))
-	_, err = file.Seek(0, os.SEEK_SET)
+	_, err = file.Seek(0, io.SeekStart)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	_, err = io.Copy(buf, file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	line, err := buf.ReadString('\n')
 	if err != nil && err != io.EOF {
-		return nil, err
+		return err
 	}
-	_, err = file.Seek(0, os.SEEK_SET)
+	fmt.Println(line)
+	_, err = file.Seek(0, io.SeekStart)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	nw, err := io.Copy(buf, file)
+	nw, err := io.Copy(file,buf)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	err = file.Truncate(nw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	err = file.Sync()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	_, err = file.Seek(0, os.SEEK_SET)
+	_, err = file.Seek(0, io.SeekStart)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return []byte(line), nil
+	return nil
 }
