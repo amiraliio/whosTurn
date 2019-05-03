@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"time"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -28,8 +31,31 @@ func processHandler(res http.ResponseWriter, req *http.Request) {
 	for scanner.Scan() {
 		content = append(content, scanner.Text())
 	}
+	switch req.FormValue("command") {
+	case "/whosturn------>[randomly]":
+		randomTurn(content, file, res)
+	case "/whosturn------>[sequentially]":
+		sequenceTurn(content, file, res)
+	default:
+		log.Println("commands are wrong")
+	}
+}
+
+func check(e error) {
+	if e != nil {
+		log.Fatal(e.Error())
+	}
+}
+
+func randomTurn(content []string, file *os.File, res http.ResponseWriter) {
+	rand.Seed(time.Now().Unix())
+	name := rand.Int() % len(content)
+	log.Fatal(res.Write([]byte(content[name])))
+}
+
+func sequenceTurn(content []string, file *os.File, res http.ResponseWriter) {
 	firstElement := content[0]
-	err = removeFileFirstLine(file)
+	err := removeFileFirstLine(file)
 	check(err)
 	_, err = file.Seek(0, io.SeekEnd)
 	check(err)
@@ -37,12 +63,6 @@ func processHandler(res http.ResponseWriter, req *http.Request) {
 	writer.WriteString("\n" + firstElement)
 	writer.Flush()
 	log.Fatal(res.Write([]byte(firstElement)))
-}
-
-func check(e error) {
-	if e != nil {
-		log.Fatal(e.Error())
-	}
 }
 
 func removeFileFirstLine(file *os.File) error {
