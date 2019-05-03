@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"net/http"
-	"fmt"
 	"os"
 )
 
@@ -20,7 +20,7 @@ func main() {
 func processHandler(res http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	check(err)
-	file, err := os.OpenFile("./data.txt", os.O_RDWR|os.O_CREATE, 0755)
+	file, err := os.OpenFile("./data.txt", os.O_RDWR, 0755)
 	check(err)
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
@@ -29,9 +29,13 @@ func processHandler(res http.ResponseWriter, req *http.Request) {
 		content = append(content, scanner.Text())
 	}
 	firstElement := content[0]
-	// file.WriteString(firstElement)
 	err = removeFileFirstLine(file)
 	check(err)
+	_, err = file.Seek(0, io.SeekEnd)
+	check(err)
+	writer := bufio.NewWriter(file)
+	writer.WriteString("\n" + firstElement)
+	writer.Flush()
 	log.Fatal(res.Write([]byte(firstElement)))
 }
 
@@ -41,7 +45,7 @@ func check(e error) {
 	}
 }
 
-func removeFileFirstLine(file *os.File)  error {
+func removeFileFirstLine(file *os.File) error {
 	fileInfo, err := file.Stat()
 	if err != nil {
 		return err
@@ -64,7 +68,7 @@ func removeFileFirstLine(file *os.File)  error {
 	if err != nil {
 		return err
 	}
-	nw, err := io.Copy(file,buf)
+	nw, err := io.Copy(file, buf)
 	if err != nil {
 		return err
 	}
